@@ -58,12 +58,11 @@ class SftpBrowser : AppCompatActivity() {
                 val files = sftpClient?.ls(currentPath) ?: emptyList()
                 runOnUiThread {
                     recycler.adapter = SftpAdapter(files) { file ->
-                        if (file.attributes.isDirectory) {
-                            currentPath = if (currentPath == "/") "/${file.filename}" else "$currentPath/${file.filename}"
+                        if (file.isDirectory()) {
+                            currentPath = if (currentPath == "/") "/${file.name}" else "$currentPath/${file.name}"
                             refreshFileList(tvPath, recycler)
                         } else {
-                            // Download file
-                            Toast.makeText(this, "Download: ${file.filename}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Download: ${file.name}", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
