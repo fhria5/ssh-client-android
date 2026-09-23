@@ -24,7 +24,7 @@ jobs:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
       
       - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon --no-build-cache
+        run: gradle assembleDebug --no-daemon --no-build-cache --no-configuration-cache
         env:
           ANDROID_HOME: $ANDROID_SDK_ROOT
           GRADLE_USER_HOME: ~/.gradle
