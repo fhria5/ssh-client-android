@@ -13,13 +13,14 @@ import java.io.File
 
 class KeyManager : AppCompatActivity() {
 
-    private val keys = mutableList<File>()
+    private val keys = mutableListOf<File>()
+    private lateinit var recycler: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_key_manager)
 
-        val recycler = findViewById<RecyclerView>(R.id.recyclerKeys)
+        recycler = findViewById<RecyclerView>(R.id.recyclerKeys)
         val fabAdd = findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fabAddKey)
 
         recycler.layoutManager = LinearLayoutManager(this)

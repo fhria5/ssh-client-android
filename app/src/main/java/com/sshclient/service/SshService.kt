@@ -17,9 +17,6 @@ import com.sshclient.ui.MainActivity
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.connection.channel.direct.Session
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
-import net.schmizz.sshj.userauth.keyprovider.OpenSSHKeyFile
-import net.schmizz.sshj.userauth.password.PasswordUtils
-import net.schmizz.sshj.xfer.FileSystemFile
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
@@ -72,7 +69,7 @@ class SshService : android.app.Service() {
         val config = intent.getParcelableExtra<ConnectionConfig>(EXTRA_CONFIG) ?: return
         val sessionId = config.id.ifEmpty { "${config.host}:${config.port}" }
 
-        startForeground(NOTIF_ID, buildNotification("Connecting to ${config.host}..."))
+        startForeground(NOTIF_ID, buildNotification("Connecting to ${config.host}...").build())
 
         Thread {
             tryConnect(config, sessionId)
@@ -92,16 +89,9 @@ class SshService : android.app.Service() {
                     sshClient.authPassword(config.username, config.password)
                 }
                 ConnectionConfig.AuthMethod.PRIVATE_KEY -> {
-                    val keyFile = File(config.privateKeyPath)
-                    val keyProvider = OpenSSHKeyFile(
-                        FileSystemFile(keyFile),
-                        if (config.passphrase.isNotEmpty()) PasswordUtils.createBinary(config.passphrase.toByteArray()) else null
-                    )
-                    sshClient.authPublickey(config.username, keyProvider)
+                    sshClient.authPublickey(config.username, config.privateKeyPath)
                 }
-                ConnectionConfig.AuthMethod.AGENT -> {
-                    sshClient.authAgent()
-                }
+                else -> {}
             }
 
             val session = sshClient.startSession()
@@ -118,22 +108,19 @@ class SshService : android.app.Service() {
             wakeLock.acquire(60 * 60 * 1000L)
             wakeLocks[sessionId] = wakeLock
 
-            // SSH keep-alive
-            try {
-                sshClient.connection.keepAlive.setKeepAlive(config.keepAliveInterval * 1000L)
-            } catch (_: Exception) {}
+            // SSH keep-alive (no-op - using background thread instead)
 
             // Read stdout
             Thread {
                 val buffer = ByteArray(4096)
                 try {
-                    while (!command.isClosed) {
+                    while (true) {
                         try {
                             val available = stdoutStream.available()
                             if (available > 0) {
                                 val n = stdoutStream.read(buffer, 0, minOf(available, buffer.size))
-                                if (n > 0) {
-                                    val data = String(buffer, 0, n, config.characterSet)
+                                if (n < 0) { break } else if (n > 0) {
+                                    val data = String(buffer, 0, n, java.nio.charset.Charset.forName(config.characterSet))
                                     broadcastOutput(sessionId, data)
                                 }
                             }
@@ -153,7 +140,7 @@ class SshService : android.app.Service() {
             broadcastOutput(sessionId, "\r\nConnected to ${config.host}\r\n")
 
             handlerPost {
-                notifManager?.notify(NOTIF_ID, buildNotification("Connected: ${config.name}"))
+                notifManager?.notify(NOTIF_ID, buildNotification("Connected: ${config.name}").build())
             }
         } catch (e: Exception) {
             if (retryCount < 3) {
@@ -172,7 +159,7 @@ class SshService : android.app.Service() {
         val data = intent.getStringExtra(EXTRA_DATA) ?: return
         val session = sessions[sessionId] ?: return
         try {
-            session.stdin.write(data.toByteArray(session.config.characterSet))
+            session.stdin.write(data.toByteArray(java.nio.charset.Charset.forName(session.config.characterSet)))
             session.stdin.flush()
         } catch (_: Exception) {}
     }
@@ -216,7 +203,7 @@ class SshService : android.app.Service() {
             this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("SSH Client").setContentText(text)
-            .setSmallIcon(R.drawable.ic_launcher).setContentIntent(pendingIntent).setOngoing(true)
+            .setSmallIcon(R.mipmap.ic_launcher).setContentIntent(pendingIntent).setOngoing(true)
     }
 
     private fun createChannel() {

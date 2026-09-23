@@ -29,11 +29,13 @@ class SftpBrowser : AppCompatActivity() {
         recycler.layoutManager = LinearLayoutManager(this)
 
         val session = SshService.getSession(sessionId)
-        sftpClient = session?.sftpClient ?: run {
+        sftpClient = session?.sftpClient
+        if (sftpClient == null) {
             Thread {
                 try {
                     val sftp = session?.sshClient?.newSFTPClient()
                     session?.sftpClient = sftp
+                    sftpClient = sftp
                     runOnUiThread { refreshFileList(tvPath, recycler) }
                 } catch (e: Exception) {
                     runOnUiThread { Toast.makeText(this, "SFTP error: ${e.message}", Toast.LENGTH_LONG).show() }
@@ -54,12 +56,13 @@ class SftpBrowser : AppCompatActivity() {
             try {
                 val rawFiles = sftpClient?.ls(currentPath) ?: emptyList()
                 val files = rawFiles.map { file ->
-                    mapOf("name" to file.toString(), "isDirectory" to false)
+                    mapOf("name" to file.path, "isDirectory" to file.isDirectory())
                 }
                 runOnUiThread {
                     recycler.adapter = SftpAdapter(files) { file ->
-                        val name = file["name"] as? String ?: ""
-                        Toast.makeText(this, if (file["isDirectory"] == true) "Open: $name" else "Download: $name", Toast.LENGTH_SHORT).show()
+                        val name = (file as? Map<*, *>)?.get("name")?.toString() ?: ""
+                        val isDir = (file as? Map<*, *>)?.get("isDirectory") == true
+                        Toast.makeText(this, if (isDir) "Open: $name" else "Download: $name", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {

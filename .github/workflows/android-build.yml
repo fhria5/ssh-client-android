@@ -23,14 +23,37 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
       
+      - name: Generate Debug Keystore
+        run: |
+          keytool -genkey -v -keystore app/debug.keystore -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -deststoretype pkcs12
+        env:
+          ANDROID_HOME: $ANDROID_SDK_ROOT
+          GRADLE_USER_HOME: ~/.gradle
+
       - name: Build Debug APK
         run: gradle assembleDebug --no-daemon --no-build-cache --no-configuration-cache
         env:
           ANDROID_HOME: $ANDROID_SDK_ROOT
           GRADLE_USER_HOME: ~/.gradle
-      
+
+      - name: Sign APK with jarsigner
+        run: |
+          jarsigner -keystore app/debug.keystore \
+            -storepass android -keypass android \
+            -signedjar app/build/outputs/apk/debug/app-debug-signed.apk \
+            app/build/outputs/apk/debug/app-debug.apk \
+            androiddebugkey
+        env:
+          ANDROID_HOME: $ANDROID_SDK_ROOT
+          GRADLE_USER_HOME: ~/.gradle
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ssh-client-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/app-debug-signed.apk
+        if: success()

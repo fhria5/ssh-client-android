@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "com.sshclient"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 33
         versionCode = 1
         versionName = "1.0"
     }
@@ -24,11 +24,11 @@ android {
         jvmTarget = "17"
     }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
+    packagingOptions {
+        pickFirst("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
+        pickFirst("META-INF/versions/11/OSGI-INF/MANIFEST.MF")
+        pickFirst("META-INF/versions/15/OSGI-INF/MANIFEST.MF")
+        pickFirst("META-INF/versions/21/OSGI-INF/MANIFEST.MF")
     }
 }
 
@@ -39,7 +39,11 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     // SSHJ only (hapus osgi + jediterm + slf4j)
-    implementation("com.hierynomus:sshj:0.39.0")
+    implementation("com.hierynomus:sshj:0.39.0") {
+        exclude(group = "org.bouncycastle", module = "bcpkix-jdk18on")
+        exclude(group = "org.bouncycastle", module = "bcprov-jdk18on")
+        exclude(group = "org.bouncycastle", module = "bcutil-jdk18on")
+    }
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
