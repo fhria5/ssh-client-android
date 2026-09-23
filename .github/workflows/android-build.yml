@@ -21,7 +21,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: 'platform-tools;platforms;android-33;build-tools;33.0.0'
+          packages: 'platform-tools platforms;android-33 build-tools;33.0.0'
       
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
