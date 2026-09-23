@@ -9,7 +9,6 @@ import com.sshclient.R
 import com.sshclient.model.SshSession
 import com.sshclient.service.SshService
 import net.schmizz.sshj.sftp.SFTPClient
-import net.schmizz.sshj.sftp.RemoteResourceInfo
 import java.io.File
 
 class SftpBrowser : AppCompatActivity() {
@@ -29,10 +28,8 @@ class SftpBrowser : AppCompatActivity() {
 
         recycler.layoutManager = LinearLayoutManager(this)
 
-        // Get SFTP client from session
         val session = SshService.getSession(sessionId)
         sftpClient = session?.sftpClient ?: run {
-            // Initialize SFTP
             Thread {
                 try {
                     val sftp = session?.sshClient?.newSFTPClient()
@@ -55,15 +52,14 @@ class SftpBrowser : AppCompatActivity() {
         tvPath.text = currentPath
         Thread {
             try {
-                val files = sftpClient?.ls(currentPath) ?: emptyList()
+                val rawFiles = sftpClient?.ls(currentPath) ?: emptyList()
+                val files = rawFiles.map { file ->
+                    mapOf("name" to file.toString(), "isDirectory" to false)
+                }
                 runOnUiThread {
                     recycler.adapter = SftpAdapter(files) { file ->
-                        if (file.isDirectory()) {
-                            currentPath = if (currentPath == "/") "/${file.name}" else "$currentPath/${file.name}"
-                            refreshFileList(tvPath, recycler)
-                        } else {
-                            Toast.makeText(this, "Download: ${file.name}", Toast.LENGTH_SHORT).show()
-                        }
+                        val name = file["name"] as? String ?: ""
+                        Toast.makeText(this, if (file["isDirectory"] == true) "Open: $name" else "Download: $name", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {

@@ -122,16 +122,13 @@ class MainActivity : AppCompatActivity() {
                 startService(intent)
             }
             "send" -> {
-                // Open terminal for this session
-                val intent = Intent(this, TerminalView::class.java).apply {
-                    putExtra("session_id", sessionId)
-                }
+                val intent = Intent(this, SftpBrowser::class.java)
+                intent.putExtra("session_id", sessionId)
                 startActivity(intent)
             }
             "sftp" -> {
-                val intent = Intent(this, SftpBrowser::class.java).apply {
-                    putExtra("session_id", sessionId)
-                }
+                val intent = Intent(this, SftpBrowser::class.java)
+                intent.putExtra("session_id", sessionId)
                 startActivity(intent)
             }
         }
