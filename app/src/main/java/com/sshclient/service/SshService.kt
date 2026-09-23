@@ -19,10 +19,13 @@ import net.schmizz.sshj.connection.channel.direct.Session
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier
 import net.schmizz.sshj.userauth.keyprovider.OpenSSHKeyFile
 import net.schmizz.sshj.userauth.password.PasswordUtils
+import net.schmizz.sshj.xfer.FileSystemFile
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 
 class SshService : android.app.Service() {
 
@@ -90,65 +93,69 @@ class SshService : android.app.Service() {
                 }
                 ConnectionConfig.AuthMethod.PRIVATE_KEY -> {
                     val keyFile = File(config.privateKeyPath)
-                    val keyProvider = OpenSSHKeyFile(keyFile,
-                        if (config.passphrase.isNotEmpty()) PasswordUtils.create(config.passphrase) else null)
+                    val keyProvider = OpenSSHKeyFile(
+                        FileSystemFile(keyFile),
+                        if (config.passphrase.isNotEmpty()) PasswordUtils.createBinary(config.passphrase.toByteArray()) else null
+                    )
                     sshClient.authPublickey(config.username, keyProvider)
                 }
                 ConnectionConfig.AuthMethod.AGENT -> {
-                    sshClient.authAgent(config.username)
+                    sshClient.authAgent()
                 }
             }
 
             val session = sshClient.startSession()
-            val remoteShell = session.remoteShell()
-            val stdin = remoteShell.stdin
 
-            // ACQUIRE WAKE LOCK - keep CPU awake agar SSH tetap hidup
+            // Execute a shell command to get interactive shell
+            val command = session.exec("/bin/sh")
+            val stdoutStream = command.getInputStream()
+            val stderrStream = command.getErrorStream()
+            val stdinStream = command.getOutputStream()
+
+            // ACQUIRE WAKE LOCK
             val pm = getSystemService(POWER_SERVICE) as PowerManager
             val wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SSHClient::KeepAlive")
-            wakeLock.acquire(60 * 60 * 1000L) // 1 hour max, released on disconnect
+            wakeLock.acquire(60 * 60 * 1000L)
             wakeLocks[sessionId] = wakeLock
 
-            // SSH keep-alive: kirim packet setiap N detik
-            sshClient.connection.keepAlive.provider = object : net.schmizz.sshj.transport.KeepAlive.Provider {
-                override fun getInterval(config: net.schmizz.sshj.transport.KeepAlive.Config?): Long {
-                    return config?.keepAliveInterval?.times(1000) ?: 30000
-                }
-            }
-            sshClient.connection.keepAlive.setKeepAlive(config.keepAliveInterval * 1000L, true)
+            // SSH keep-alive
+            try {
+                sshClient.connection.keepAlive.setKeepAlive(config.keepAliveInterval * 1000L)
+            } catch (_: Exception) {}
 
             // Read stdout
-            val stdoutHandler = Handler(Looper.getMainLooper())
-            keepAliveHandlers[sessionId] = stdoutHandler
             Thread {
                 val buffer = ByteArray(4096)
-                while (session.isOpen) {
-                    try {
-                        val available = remoteShell.stdout.available()
-                        if (available > 0) {
-                            val n = remoteShell.stdout.read(buffer, 0, minOf(available, buffer.size))
-                            if (n > 0) {
-                                val data = String(buffer, 0, n, config.characterSet)
-                                broadcastOutput(sessionId, data)
+                try {
+                    while (!command.isClosed) {
+                        try {
+                            val available = stdoutStream.available()
+                            if (available > 0) {
+                                val n = stdoutStream.read(buffer, 0, minOf(available, buffer.size))
+                                if (n > 0) {
+                                    val data = String(buffer, 0, n, config.characterSet)
+                                    broadcastOutput(sessionId, data)
+                                }
                             }
-                        }
-                        Thread.sleep(50)
-                    } catch (_: Exception) { break }
-                }
+                            Thread.sleep(50)
+                        } catch (_: Exception) { break }
+                    }
+                } catch (_: Exception) {}
             }.start()
 
-            val sshSession = SshSession(config, sshClient, session, stdin, remoteShell.stdout, remoteShell.stderr)
+            val sshSession = SshSession(
+                config, sshClient, session,
+                stdinStream, stdoutStream, stderrStream
+            )
             sessions[sessionId] = sshSession
 
             broadcastStatus(sessionId, true)
-            broadcastOutput(sessionId, "\r\n✅ Connected to ${config.host}\r\n")
+            broadcastOutput(sessionId, "\r\nConnected to ${config.host}\r\n")
 
-            // Update notification
             handlerPost {
                 notifManager?.notify(NOTIF_ID, buildNotification("Connected: ${config.name}"))
             }
         } catch (e: Exception) {
-            // Auto-reconnect: retry 3x dengan jeda 5 detik
             if (retryCount < 3) {
                 handlerPostDelayed({ tryConnect(config, sessionId, retryCount + 1) }, 5000L)
             } else {
@@ -209,7 +216,7 @@ class SshService : android.app.Service() {
             this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("SSH Client").setContentText(text)
-            .setSmallIcon(R.drawable.ic_ssh).setContentIntent(pendingIntent).setOngoing(true)
+            .setSmallIcon(R.drawable.ic_launcher).setContentIntent(pendingIntent).setOngoing(true)
     }
 
     private fun createChannel() {
