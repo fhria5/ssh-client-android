@@ -95,9 +95,7 @@ class KeyManager : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(if (isEdit) "Edit Key" else "Add Key")
             .setView(dialogView)
-            .setPositiveButton("Save") { _, _ ->
-                // Save logic handled by generate/import
-            }
+            .setPositiveButton("Save") { dialog, _ -> dialog.dismiss() }
             .setNegativeButton("Cancel", null)
             .show()
     }
