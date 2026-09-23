@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.sshclient.R
 
 class SessionAdapter(
     private val items: MutableList<SessionItem>,

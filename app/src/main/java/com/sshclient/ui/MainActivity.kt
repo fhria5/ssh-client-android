@@ -45,9 +45,7 @@ class MainActivity : AppCompatActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val sessionId = intent?.getStringExtra("session_id") ?: return
             val error = intent.getStringExtra("error") ?: "Error"
-            runOnUiThread {
-                Toast.makeText(this, "[$sessionId] $error", Toast.LENGTH_LONG).show()
-            }
+            Toast.makeText(applicationContext, "[$sessionId] $error", Toast.LENGTH_LONG).show()
         }
     }
 
