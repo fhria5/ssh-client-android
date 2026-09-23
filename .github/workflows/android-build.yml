@@ -23,13 +23,12 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-33 build-tools;33.0.0'
       
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
-      
       - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon --no-build-cache
         env:
           ANDROID_HOME: $ANDROID_SDK_ROOT
+          GRADLE_USER_HOME: ~/.gradle
+          ORG_GRADLE_PROJECT_org_gradle_enterprise_enabled: "false"
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
