@@ -19,7 +19,7 @@ jobs:
           distribution: 'temurin'
       
       - name: Setup Android SDK
-        uses: google-github-actions/setup-android@v1
+        uses: google-github-actions/setup-android@main
         with:
           packages: 'platform-tools;platforms;android-33;build-tools;33.0.0'
       
