@@ -99,7 +99,7 @@ class MainActivity : AppCompatActivity() {
                 sessions.containsKey(config.id)
             )
         }
-        adapter?.updateItems(item)
+        adapter?.updateItems(items)
         updateConnectionCount()
     }
 
@@ -108,17 +108,15 @@ class MainActivity : AppCompatActivity() {
             "connect" -> {
                 val connections = StorageUtil.loadConnections(this)
                 val config = connections.find { it.id == sessionId } ?: return
-                val intent = Intent(this, SshService::class.java).apply {
-                    action = SshService.ACTION_CONNECT
-                    putExtra(SshService.EXTRA_CONFIG, config)
-                }
+                val intent = Intent(this, SshService::class.java)
+                intent.action = SshService.ACTION_CONNECT
+                intent.putExtra(SshService.EXTRA_CONFIG, config)
                 startService(intent)
             }
             "disconnect" -> {
-                val intent = Intent(this, SshService::class.java).apply {
-                    action = SshService.ACTION_DISCONNECT
-                    putExtra(SshService.EXTRA_SESSION_ID, sessionId)
-                }
+                val intent = Intent(this, SshService::class.java)
+                intent.action = SshService.ACTION_DISCONNECT
+                intent.putExtra(SshService.EXTRA_SESSION_ID, sessionId)
                 startService(intent)
             }
             "send" -> {
