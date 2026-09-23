@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SSH Client</string>
+    <string-array name="auth_methods">
+        <item>Password</item>
+        <item>Private Key</item>
+        <item>Agent</item>
+    </string-array>
+</resources>

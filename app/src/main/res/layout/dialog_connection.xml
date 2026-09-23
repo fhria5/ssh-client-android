@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/etName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Connection name" />
+
+    <EditText
+        android:id="@+id/etHost"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Host"
+        android:inputType="textUri" />
+
+    <EditText
+        android:id="@+id/etPort"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Port"
+        android:inputType="number"
+        android:text="22" />
+
+    <EditText
+        android:id="@+id/etUser"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Username" />
+
+    <EditText
+        android:id="@+id/etPass"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Password"
+        android:inputType="textPassword" />
+
+    <Spinner
+        android:id="@+id/spAuthMethod"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:entries="@array/auth_methods" />
+
+    <EditText
+        android:id="@+id/etKeyPath"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Private key path" />
+
+    <EditText
+        android:id="@+id/etPassphrase"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Passphrase"
+        android:inputType="textPassword" />
+
+    <CheckBox
+        android:id="@+id/cbCompress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enable compression" />
+
+</LinearLayout>
