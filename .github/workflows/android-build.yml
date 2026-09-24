@@ -53,20 +53,32 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK" || { echo "APK tidak ditemukan di $APK"; exit 1; }
           ls -la "$APK"
-          # Cek isi APK pakai python3 (zipfile) — unzip tidak selalu tersedia
-          # di runner, dan ketergantungan itu pernah membuat step ini gagal.
+
+          # Tampilkan isi APK lebih dulu supaya kalau ada masalah, log-nya
+          # langsung memberi tahu apa yang sebenarnya ada di dalamnya.
           python3 - "$APK" <<'PY'
           import sys, zipfile
           apk = sys.argv[1]
-          z = zipfile.ZipFile(apk)
-          names = z.namelist()
-          assert "AndroidManifest.xml" in names, "bukan APK valid: AndroidManifest.xml tidak ada"
-          assert "classes.dex" in names, "bukan APK valid: classes.dex tidak ada"
-          sig = [n for n in names if n.startswith("META-INF/") and
-                 (n.endswith(".RSA") or n.endswith(".DSA") or n.endswith(".EC") or n == "META-INF/CERT.SF")]
-          assert sig, "APK tidak tertandatangani (tidak ada blok tanda tangan di META-INF)"
-          print("APK valid:", len(names), "entri; tanda tangan:", sig)
+          names = zipfile.ZipFile(apk).namelist()
+          print("total entri:", len(names))
+          print("META-INF:", [n for n in names if n.startswith("META-INF/")])
+          print("dex:", [n for n in names if n.endswith(".dex")])
+          assert "AndroidManifest.xml" in names, "bukan APK: AndroidManifest.xml tidak ada"
+          assert "classes.dex" in names, "bukan APK: classes.dex tidak ada"
+          print("struktur APK ok")
           PY
+
+          # Verifikasi tanda tangan pakai apksigner dari build-tools (otoritatif,
+          # menangani skema v1/v2/v3). APK debug yang ditandatangani AGP modern
+          # hanya punya blok tanda tangan v2 yang TIDAK berupa entri META-INF,
+          # jadi memeriksa entri zip saja bisa salah lapor.
+          APKSIGNER=$(find "$ANDROID_SDK_ROOT/build-tools" -name apksigner -type f 2>/dev/null | sort | tail -1)
+          if [ -n "$APKSIGNER" ]; then
+            echo "memakai $APKSIGNER"
+            "$APKSIGNER" verify --verbose "$APK"
+          else
+            echo "apksigner tidak ditemukan; lewati verifikasi tanda tangan"
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
