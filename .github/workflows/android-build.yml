@@ -53,10 +53,20 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK" || { echo "APK tidak ditemukan di $APK"; exit 1; }
           ls -la "$APK"
-          # pastikan benar-benar APK dan benar-benar tertandatangani
-          unzip -l "$APK" | grep -q "AndroidManifest.xml" || { echo "bukan APK valid"; exit 1; }
-          unzip -l "$APK" | grep -qE "META-INF/(CERT|.*\.RSA|.*\.DSA|.*\.EC)" || { echo "APK tidak tertandatangani"; exit 1; }
-          echo "APK valid dan tertandatangani"
+          # Cek isi APK pakai python3 (zipfile) — unzip tidak selalu tersedia
+          # di runner, dan ketergantungan itu pernah membuat step ini gagal.
+          python3 - "$APK" <<'PY'
+          import sys, zipfile
+          apk = sys.argv[1]
+          z = zipfile.ZipFile(apk)
+          names = z.namelist()
+          assert "AndroidManifest.xml" in names, "bukan APK valid: AndroidManifest.xml tidak ada"
+          assert "classes.dex" in names, "bukan APK valid: classes.dex tidak ada"
+          sig = [n for n in names if n.startswith("META-INF/") and
+                 (n.endswith(".RSA") or n.endswith(".DSA") or n.endswith(".EC") or n == "META-INF/CERT.SF")]
+          assert sig, "APK tidak tertandatangani (tidak ada blok tanda tangan di META-INF)"
+          print("APK valid:", len(names), "entri; tanda tangan:", sig)
+          PY
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
