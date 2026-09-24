@@ -27,6 +27,28 @@
             </intent-filter>
         </activity>
 
+        <!-- Activity ini diluncurkan lewat startActivity() dari MainActivity.
+             Sebelumnya tidak terdaftar di manifest, sehingga menekan tombol
+             SFTP atau Connection Manager langsung memicu ActivityNotFoundException
+             (crash) walaupun build-nya sukses. -->
+        <activity
+            android:name=".ui.ConnectionManager"
+            android:exported="false"
+            android:label="Koneksi"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <activity
+            android:name=".ui.KeyManager"
+            android:exported="false"
+            android:label="Kunci SSH"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <activity
+            android:name=".ui.SftpBrowser"
+            android:exported="false"
+            android:label="SFTP"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
         <service
             android:name=".service.SshService"
             android:enabled="true"
